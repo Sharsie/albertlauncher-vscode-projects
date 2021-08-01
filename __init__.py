@@ -6,14 +6,13 @@ import os
 import json
 import unicodedata
 
-from albertv0 import *
+from albert import *
 
-__iid__ = "PythonInterface/v0.1"
-__prettyname__ = "VS Code Projects"
-__version__ = "1.0"
-__trigger__ = "vc "
+
+__title__ = "VS Code Projects"
+__version__ = "0.4.0"
+__triggers__ = "vc "
 __author__ = "Sharsie"
-__dependencies__ = []
 
 default_icon = os.path.dirname(__file__) + "/vscode.svg"
 HOME_DIR = os.environ["HOME"]
@@ -30,7 +29,7 @@ PROJECT_MANAGER_XDG_CONFIG_DIR = os.path.join(
 
 # If Project Manager is installed, you can disable recent projects by switching
 # the following variable to True
-INCLUDE_RECENT = False
+INCLUDE_RECENT = True
 
 # Sort order of the Project Manager entries (match by Name)
 ORDER_PM_NAME = 0
@@ -65,6 +64,7 @@ def createProjectEntry(name, path, index, secondary_index):
 
 
 def handleQuery(query):
+    print("query.string")
     if query.isTriggered:
         # No vscode storage file
         if not os.path.exists(STORAGE_DIR_XDG_CONFIG_DIR):
@@ -85,7 +85,8 @@ def handleQuery(query):
             storageConfig = json.loads(configFile.read())
 
             if (
-                "lastKnownMenubarData" in storageConfig
+                INCLUDE_RECENT == True
+                and "lastKnownMenubarData" in storageConfig
                 and "menus" in storageConfig['lastKnownMenubarData']
                 and "File" in storageConfig['lastKnownMenubarData']['menus']
                 and "items" in storageConfig['lastKnownMenubarData']['menus']['File']
@@ -193,6 +194,10 @@ def handleQuery(query):
         # Array of Items we will return to albert launcher
         items = []
 
+        # disable automatic sorting
+        query.disableSort()
+
+        # Sort projects by indexes
         sorted_project_items = sorted(projects.items(), key=lambda item: "%s_%s_%s" % (
             item[1]['index'], item[1]['index_secondary'], item[1]['name']), reverse=False)
 
@@ -205,9 +210,10 @@ def handleQuery(query):
                 icon=default_icon,
                 text=name,
                 subtext=path,
-                completion=__trigger__ + name,
+                completion=__triggers__ + name,
                 actions=[
-                    ProcAction("Open in VSCode", ["code", path])
+                    ProcAction(text="Open in VSCode",
+                               commandline=["code", path])
                 ]
             )
 
