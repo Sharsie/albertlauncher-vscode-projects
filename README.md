@@ -11,11 +11,14 @@ Sorting is based on
 2) If query matches on the tag of Project Manager entry, it will be sorted second and then alphabetically by name
 3) Last come recently opened paths in VS Code sorted in the same way as they are shown in VS Code File -> Open Recent
 
-## How to install:
+## How to install
 Copy contents of this directory to ${XDG_DATA_HOME:-$HOME/.local/share}/albert/org.albert.extension.python/modules/vscode-projects
 
+## How to use
+Start by typing `vc `. If you have any recently opened paths you should immediately see the latest ones at the top.
+
 ## Project Manager
-Search is based on the rootPath of the project, its name and its tags
+If you have PM extension installed the search is performed against the rootPath of the project, its name and its tags.
 
 ## Disclaimer
 
