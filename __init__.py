@@ -97,10 +97,10 @@ def handleQuery(query):
 
                 # These are all the menu items in File dropdown
                 for menuItem in storageConfig['lastKnownMenubarData']['menus']['File']['items']:
-                    # Find Open & Recent which is identified by id "submenuitem.29"
+                    # Cannot safely detect proper menu item, as menu item IDs change over time
+                    # Instead we will search all submenus and check for IDs inside the submenu items
                     if (
                         not "id" in menuItem
-                        or menuItem['id'] != "submenuitem.29"
                         or not "submenu" in menuItem
                         or not "items" in menuItem['submenu']
                     ):
@@ -110,10 +110,10 @@ def handleQuery(query):
                         # Check of submenu item with id "openRecentFolder" and make sure it contains necessarry keys
                         if (
                             not "id" in submenuItem
+                            or submenuItem['id'] != "openRecentFolder"
                             or not "enabled" in submenuItem
                             or submenuItem['enabled'] != True
                             or not "label" in submenuItem
-                            or submenuItem['id'] != "openRecentFolder"
                             or not "uri" in submenuItem
                             or not "path" in submenuItem['uri']
                         ):
