@@ -213,7 +213,8 @@ def handleQuery(query):
                 completion=__triggers__ + name,
                 actions=[
                     ProcAction(text="Open in VSCode",
-                               commandline=["code", path])
+                               commandline=["code", path],
+                               cwd=path)
                 ]
             )
 
