@@ -17,9 +17,12 @@ __author__ = "Sharsie"
 default_icon = os.path.dirname(__file__) + "/vscode.svg"
 HOME_DIR = os.environ["HOME"]
 
+# User/sync/globalState/lastSyncglobalState.json
 # Path to the vscode storage json file where recent paths can be queried
-STORAGE_DIR_XDG_CONFIG_DIR = os.path.join(
-    HOME_DIR, ".config/Code/storage.json")
+STORAGE_DIR_XDG_CONFIG_DIRS = [
+    os.path.join(HOME_DIR, ".config/Code/storage.json"),
+    os.path.join(HOME_DIR, ".config/Code/User/globalStorage/storage.json"),
+]
 
 # Path to the Project Manager plugin configuration
 PROJECT_MANAGER_XDG_CONFIG_DIR = os.path.join(
@@ -66,79 +69,75 @@ def createProjectEntry(name, path, index, secondary_index):
 def handleQuery(query):
     print("query.string")
     if query.isTriggered:
-        # No vscode storage file
-        if not os.path.exists(STORAGE_DIR_XDG_CONFIG_DIR):
-            debug(
-                "There is no storage configuration at %s",
-                STORAGE_DIR_XDG_CONFIG_DIR
-            )
-            return
-
         # Create projects dictionary to store projects by paths
         projects = {}
 
         # Normalize user query
         normalizedQueryString = normalizeString(query.string)
 
-        with open(STORAGE_DIR_XDG_CONFIG_DIR) as configFile:
-            # Load the storage json
-            storageConfig = json.loads(configFile.read())
+        for storageFile in STORAGE_DIR_XDG_CONFIG_DIRS:
+            # No vscode storage file
+            if os.path.exists(storageFile):
+                with open(storageFile) as configFile:
+                    # Load the storage json
+                    storageConfig = json.loads(configFile.read())
 
-            if (
-                INCLUDE_RECENT == True
-                and "lastKnownMenubarData" in storageConfig
-                and "menus" in storageConfig['lastKnownMenubarData']
-                and "File" in storageConfig['lastKnownMenubarData']['menus']
-                and "items" in storageConfig['lastKnownMenubarData']['menus']['File']
-            ):
-                # Use incremental index for sorting which will keep the projects
-                # sorted from least recent to oldest one
-                sortIndex = ORDER_RECENT + 1
-
-                # These are all the menu items in File dropdown
-                for menuItem in storageConfig['lastKnownMenubarData']['menus']['File']['items']:
-                    # Cannot safely detect proper menu item, as menu item IDs change over time
-                    # Instead we will search all submenus and check for IDs inside the submenu items
                     if (
-                        not "id" in menuItem
-                        or not "submenu" in menuItem
-                        or not "items" in menuItem['submenu']
+                        INCLUDE_RECENT == True
+                        and "lastKnownMenubarData" in storageConfig
+                        and "menus" in storageConfig['lastKnownMenubarData']
+                        and "File" in storageConfig['lastKnownMenubarData']['menus']
+                        and "items" in storageConfig['lastKnownMenubarData']['menus']['File']
                     ):
-                        continue
+                        # Use incremental index for sorting which will keep the projects
+                        # sorted from least recent to oldest one
+                        sortIndex = ORDER_RECENT + 1
 
-                    for submenuItem in menuItem['submenu']['items']:
-                        # Check of submenu item with id "openRecentFolder" and make sure it contains necessarry keys
-                        if (
-                            not "id" in submenuItem
-                            or submenuItem['id'] != "openRecentFolder"
-                            or not "enabled" in submenuItem
-                            or submenuItem['enabled'] != True
-                            or not "label" in submenuItem
-                            or not "uri" in submenuItem
-                            or not "path" in submenuItem['uri']
-                        ):
-                            continue
+                        # These are all the menu items in File dropdown
+                        for menuItem in storageConfig['lastKnownMenubarData']['menus']['File']['items']:
+                            # Cannot safely detect proper menu item, as menu item IDs change over time
+                            # Instead we will search all submenus and check for IDs inside the submenu items
+                            if (
+                                not "id" in menuItem
+                                or not "submenu" in menuItem
+                                or not "items" in menuItem['submenu']
+                            ):
+                                continue
 
-                        # Get the full path to the project
-                        recentPath = submenuItem['uri']['path']
-                        if not os.path.exists(recentPath):
-                            continue
+                            for submenuItem in menuItem['submenu']['items']:
+                                # Check of submenu item with id "openRecentFolder" and make sure it contains necessarry keys
+                                if (
+                                    not "id" in submenuItem
+                                    or submenuItem['id'] != "openRecentFolder"
+                                    or not "enabled" in submenuItem
+                                    or submenuItem['enabled'] != True
+                                    or not "label" in submenuItem
+                                    or not "uri" in submenuItem
+                                    or not "path" in submenuItem['uri']
+                                ):
+                                    continue
 
-                        # Normalize the directory in which the project resides
-                        normalizedDir = normalizeString(
-                            recentPath.split("/")[-1])
-                        normalizedLabel = normalizeString(submenuItem['label'])
+                                # Get the full path to the project
+                                recentPath = submenuItem['uri']['path']
+                                if not os.path.exists(recentPath):
+                                    continue
 
-                        # Compare the normalized dir with user query
-                        if (
-                            normalizedDir.find(normalizedQueryString) != -1
-                            or normalizedLabel.find(normalizedQueryString) != -1
-                        ):
-                            # Inject the project
-                            projects[recentPath] = createProjectEntry(
-                                normalizedDir, recentPath, ORDER_RECENT, sortIndex)
-                            # Increment the sort index
-                            sortIndex += 1
+                                # Normalize the directory in which the project resides
+                                normalizedDir = normalizeString(
+                                    recentPath.split("/")[-1])
+                                normalizedLabel = normalizeString(submenuItem['label'])
+
+                                # Compare the normalized dir with user query
+                                if (
+                                    normalizedDir.find(normalizedQueryString) != -1
+                                    or normalizedLabel.find(normalizedQueryString) != -1
+                                ):
+                                    # Inject the project
+                                    projects[recentPath] = createProjectEntry(
+                                        normalizedDir, recentPath, ORDER_RECENT, sortIndex)
+                                    # Increment the sort index
+                                    sortIndex += 1
+
 
         # Check whether the Project Manager config file exists
         if os.path.exists(PROJECT_MANAGER_XDG_CONFIG_DIR):
